@@ -7,6 +7,8 @@ using std::cin;
 using std::cout;
 using std::endl;
 using std::vector;
+// bpm规范：
+//    必须加前置 std::
 
 int chapter3_1_1()
 {

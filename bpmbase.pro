@@ -9,4 +9,5 @@ SUBDIRS = \
     qtbinpatcher \
     cpp11primer1_1 \
     cpp11primer_2 \
-    cpp11primer_3
+    cpp11primer_3 \
+    cpp11primer_4
