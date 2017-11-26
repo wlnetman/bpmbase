@@ -7,4 +7,5 @@ SUBDIRS = \
     imgui_demo \
     utils_test \
     qtbinpatcher \
-    cpp11primer1_1
+    cpp11primer1_1 \
+    cpp11primer_2
