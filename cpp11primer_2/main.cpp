@@ -47,7 +47,7 @@ void c2_2_1()
 {
     //int units_sold = 0;
     //int units_sold = {0};
-    int units_sold{0};
+    //int units_sold{0};
     //int units_sold(0);
 }
 
@@ -65,8 +65,8 @@ int c2_3()
               << refVal2 << std::endl;
 
     double dval;
-    double *pd = &dval; // 指向dval的地址
-    double *pd2 = pd;   // 指向dval的指针
+    //double *pd = &dval; // 指向dval的地址
+    //double *pd2 = pd;   // 指向dval的指针
 
 
     return 0;
@@ -74,13 +74,13 @@ int c2_3()
 
 void c2_4()
 {
-    const int bufsize = 512;
-    //bufsize = 1024;
+//  const int bufsize = 512;
+//  bufsize = 1024;
 
     int i = 42;
     const int ci = i;
-    int j = ci;
-    const int &r1 = ci;
+//    int j = ci;
+//    const int &r1 = ci;
 
     const double pi = 3.14;
     //double *ptr = &pi;
@@ -93,7 +93,7 @@ void c2_4()
     int errNumb = 0;
     int *const curErr = &errNumb;
     //const double pi = 3.1415926;
-    const double *const pip = &pi;
+    //const double *const pip = &pi;
 
     //*pip = 333;
     if(*curErr){
@@ -105,19 +105,19 @@ void c2_4()
 // auto 变量
 void c2_5()
 {
-    Sales_item val1;
-    Sales_item val2;
-    auto result = val1 + val2;
-    std::cout << result << std::endl;
+//    Sales_item val1;
+//    Sales_item val2;
+//    auto result = val1 + val2;
+//    std::cout << result << std::endl;
 
-    const int i = 42;
-    auto j = i;
-    const auto &k = i;
-    auto *p = &i;
-    const auto j2 = i, &k2 = i;
-    // 便以失败时可以看到auto对应的数据类型
-    //fmt::format("j{} k{} p{} j2{} k2{}", j, k, p, j2, k2);
-    decltype(j) a;
+//    const int i = 42;
+//    auto j = i;
+//    const auto &k = i;
+//    auto *p = &i;
+//    const auto j2 = i, &k2 = i;
+//    // 便以失败时可以看到auto对应的数据类型
+//    //fmt::format("j{} k{} p{} j2{} k2{}", j, k, p, j2, k2);
+//    decltype(j) a;
 }
 
 struct Sales_data{
