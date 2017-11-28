@@ -1,0 +1,10 @@
+isbn1 20 400
+isbn1 20 100
+isbn1 30 200
+isbn2 20 100
+isbn2 20 300
+isbn3 39 90
+isbn4 100 100
+isbn4 50 100
+isbn4 10 90
+isbn4 20 80

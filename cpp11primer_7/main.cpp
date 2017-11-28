@@ -56,7 +56,7 @@ void chapter7_4()
 void chapter7_5()
 {
     Sales_data item1("SB");
-    std::cout<< print(std::cout, item1) << std::endl;
+    print(std::cout, item1);
     Sales_data item2("ibsn", 2190, 22);
     print(std::cout, item2);
     Sales_data item3();
