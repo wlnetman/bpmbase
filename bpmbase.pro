@@ -16,4 +16,5 @@ SUBDIRS = \
     cpp11primer_7 \
     cpp11primer_8 \
     cpp11primer_9 \
-    cpp11primer_10
+    cpp11primer_10 \
+    cpp11primer_11
