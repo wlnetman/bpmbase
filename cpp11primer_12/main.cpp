@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <new>
 
 #include "strblob.h"
 
@@ -19,6 +20,17 @@ template  <typename Foo, typename T>
 std::shared_ptr<Foo> factory(T arg)
 {
     return std::make_shared<Foo>(arg);
+}
+
+std::shared_ptr<int> clone(int p){
+    return std::shared_ptr<int>(new int(p));
+}
+
+void process(std::shared_ptr<int> ptr)
+{
+    ++(*ptr);
+    //delete ptr;
+    return;
 }
 
 void chapter12_1()
@@ -65,10 +77,76 @@ void chapter12_1()
         b1 = b2;
         b2.push_back("abuot");
     }
+
+    //默认初始化的值未定义
+    //内置初始化按照函数走
+    int *newp = new int;
+    int *newp2 = new int();
+    *newp = 10;
+    int *pi = new int(1024);
+    std::string *ps = new std::string(10,'s');
+    std::vector<int> *pv = new std::vector<int>{0,1,2,3,4,5,6,7,8,9};
+    auto p15 = new auto(StrBlob());
+    const std::string *pcs = new std::string;
+    int *p8 = new (std::nothrow) int;
+    delete newp;
+    delete newp2;
+    delete pi;
+    delete ps;
+    delete pv;
+    delete p15;
+    delete p8;
+    delete pcs;
+    pcs = nullptr; //有限的保护
+
+    std::shared_ptr<double> p10;
+    std::shared_ptr<int> p12(new int(42));
+
+    process(p12);
+    int i = *p12;
+
+    int *x(new int(1024));
+    //process(x);
+    process(std::shared_ptr<int>(x));
+    int j = *x; // 悬空
+
+    int *qq = p12.get();
+    {
+        std::shared_ptr<int>(q);
+    }
+    int foo = *p12;  // 无效
+
+    p12.reset(new int(42));
+
+    std::shared_ptr<std::string> ps2(new std::string("ee"));
+    if( !ps2.unique())
+        ps2.reset(new std::string(*ps2));
+    *ps2 += "LW";
+
+}
+
+/*
+void end_connection(connection *p){ disconnect(*p); }
+void f(destination &d)
+{
+    connection c = connect(&d);
+    std::shared_ptr<connection> p(&c, end_connection();)
+}
+*/
+
+void chapter12_1_4()
+{
+    std::unique_ptr<double> p1;
+    //std::unique_ptr<std::string> p2(p1);
+    std::unique_ptr<std::string> p3;
+    //p3 = p2;
+    p1.release();
+    p1.reset();
 }
 
 int main(int argc,char* argv[])
 {
     chapter12_1();
+    chapter12_1_4();
     return 0;
 }
