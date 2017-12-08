@@ -1,5 +1,6 @@
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <vector>
@@ -194,6 +195,23 @@ void chapter11_3()
         std::cout<< pos4.first->second << std::endl;
 }
 
+void chapter11_4()
+{
+    std::map<std::string, std::string> number= {
+                                                {"1", "one"},
+                                                {"2", "two"},
+                                                {"3", "three"}};
+    printStrStrMap(number);
+
+    std::unordered_map<std::string, std::string> text = {
+        {"1.1", "one"},
+        {"2.2", "two"},
+        {"3.3", "three"}};
+
+    for(const auto &w : text)
+        std::cout << "{ " << w.first << ", "
+                  << w.second << " }" << std::endl;
+}
 
 int main(int argc,char* argv[])
 {
@@ -201,6 +219,7 @@ int main(int argc,char* argv[])
     // 关联容器
     //chapter11_2();
     // 关联容器操作
-    chapter11_3();
+    //chapter11_3();
+    chapter11_4();
     return 0;
 }

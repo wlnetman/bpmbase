@@ -6,6 +6,10 @@
 #include <deque>
 #include <numeric>
 #include <iterator>
+#include <functional>
+
+using std::placeholders::_1;
+using namespace std::placeholders;
 
 #define varName(x) #x
 void printInt(std::vector<int> vec)
@@ -90,6 +94,7 @@ std::string make_plural(size_t ctr,const std::string &word, const std::string &e
 {
   return (ctr==1) ? word : word+ending;
 }
+
 // lambda 表达式
 // 问题，格式太难理解，很难写的很整齐易懂
 void biggies(std::vector<std::string> &words,
@@ -110,10 +115,27 @@ void biggies(std::vector<std::string> &words,
     std::cout<< std::endl;
 }
 
+bool check_size(const std::string &s, std::string::size_type sz)
+{
+    return s.size() >= sz;
+}
+
 void chapter10_3()
 {
     std::vector<std::string> words = {"Dashi", "Zongli", "Hege"};
     biggies(words, words.size());
+
+    // bind
+    // 可调用对象
+    std::vector<std::string>::size_type sz;
+    auto check6 = std::bind(check_size, _1, 6);
+    auto b1 = check6("dashi");
+    std::cout<< b1 << std::endl;
+
+    auto wc = std::find_if(words.begin(), words.end(),
+                           [sz](const std::string &a){ return a.size() > sz; });
+    auto wc2 = std::find_if(words.begin(), words.end(),
+                           bind(check_size, _1 , sz));
 }
 
 void chapter10_4()
@@ -206,9 +228,9 @@ int main(int argc,char* argv[])
 {
     //chapter10_1();
     //chapter10_2();
-    //chapter10_3();
+    chapter10_3();
     //chapter10_4();
     //chapter10_5();
-    chapter10_6();
+    //chapter10_6();
     return 0;
 }
