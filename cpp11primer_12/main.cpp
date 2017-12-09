@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -6,6 +7,9 @@
 #include <new>
 
 #include "strblob.h"
+#include "strblobptr.h"
+#include "queryresult.h"
+#include "textquery.h"
 
 //--------------------------------
 // c++11 primer v5
@@ -213,8 +217,73 @@ void chapter12_1_6()
     }
 
     // StrBlobPtr
-    StrBlobPtr strP;
+    StrBlob strP = {"dashi", "zongli", "hege"};
+    std::cout<< strP.front() << std::endl;
+    StrBlobPtr pstr(strP, 0);
+    for(int i = 0; i < strP.size(); i++){
+        std::string temp = pstr.deref();
+        std::cout<< temp << std::endl;
+        pstr = pstr.inc();
+    }
+}
 
+int get_size()
+{
+    return 42;
+}
+void chapter12_2()
+{
+    int *pia = new int[get_size()];
+    std::cout<< sizeof(pia) << std::endl;
+    delete [] pia;
+    typedef int arrT[42];
+    int *p = new arrT;
+    std::cout<< sizeof(*p) << std::endl;
+    delete [] p;
+
+    std::unique_ptr<int[]> up(new int[12]);
+    up.release();
+
+    {
+        std::shared_ptr<int> sp(new int[10], [](int *p){ delete[] p;});
+        std::cout<< sizeof(pia) << std::endl;
+    }
+
+    //allocator
+    int n = 42;
+    std::allocator<std::string> alloc;
+    auto const palloc = alloc.allocate(n);
+    auto q = alloc.allocate(n);
+    alloc.construct(q++);
+    alloc.construct(q++, 10, 'c');
+    alloc.construct(q++, "hi");
+    std::cout<< *p << std::endl;
+    //std::cout<< *q << std::endl;
+    //alloc.destroy(palloc);
+//    while ( q != palloc) {
+//        alloc.destroy(--q);
+//    }
+    alloc.deallocate(palloc, n);
+    {
+        std::allocator<int> alloc;
+        std::vector<int> vi(100);
+        auto p = alloc.allocate(vi.size() * 2);
+        auto q = std::uninitialized_copy(vi.begin(), vi.end(), p);
+        std::uninitialized_fill_n(q, vi.size(), 42);
+    }
+}
+
+void chapter12_3(std::ifstream &infile)
+{
+    TextQuery tq(infile);
+    while (true) {
+        std::cout<< "enter word to look for, or q to quit";
+        std::string s;
+        if(! (std::cin >> s) || s == "q") break;
+        print(std::cout, tq.query(s)) << std::endl;
+    }
+    std::string s;
+    std::cin >> s;
 }
 
 int main(int argc,char* argv[])
@@ -222,6 +291,9 @@ int main(int argc,char* argv[])
     //chapter12_1();
     //chapter12_1_4();
     //chapter12_1_5();
-    chapter12_1_6();
+    //chapter12_1_6();
+    //chapter12_2();
+    std::ifstream file("test.txt");
+    chapter12_3(file);
     return 0;
 }

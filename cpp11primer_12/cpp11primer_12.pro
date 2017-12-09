@@ -5,11 +5,17 @@ CONFIG -= qt
 CONFIG += static_runtime
 
 HEADERS += \
-    strblob.h
+    strblob.h \
+    strblobptr.h \
+    textquery.h \
+    queryresult.h
 
 SOURCES += \
     main.cpp \
-    strblob.cpp
+    strblob.cpp \
+    strblobptr.cpp \
+    textquery.cpp \
+    queryresult.cpp
 
 include(../msvc.pri)
 include(../utils.pri)
