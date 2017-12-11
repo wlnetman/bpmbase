@@ -17,7 +17,20 @@ HasPtr& HasPtr::operator=(const HasPtr &rhs)
     return *this;
 }
 
+HasPtr& HasPtr::operator=(HasPtr &rhs)
+{
+    swap(*this, rhs);
+    return *this;
+}
+
+HasPtr& HasPtr::operator=(HasPtr rhs)
+{
+    swap(*this, rhs);
+    return *this;
+}
+
 HasPtr::~HasPtr()
+
 {
     if(--*use == 0 ){
         delete ps;

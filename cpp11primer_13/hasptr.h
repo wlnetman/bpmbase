@@ -7,14 +7,22 @@ class HasPtr
 {
     friend void swap(HasPtr &lhs, HasPtr &rhs);
 public:
-    HasPtr() = default;
+    //HasPtr() = default;
     HasPtr(const std::string &s = std::string()):
         ps(new std::string(s)), i(0), use(new std::size_t(1)) { }
     ///~HasPtr(){delete ps;};
     HasPtr(const HasPtr &p):
         ps(new std::string(*p.ps)), i(p.i), use(p.use) { ++*use;}
-    HasPtr& operator=(const HasPtr &);
+
+    HasPtr& operator=(HasPtr hp);
+    HasPtr& operator=(HasPtr &);
+    HasPtr& operator=(const HasPtr&);
     ~HasPtr();
+
+    // 13.6, 拷贝并交换复制
+    // 增加移动构造函数
+    HasPtr(HasPtr &&p) noexcept : ps(p.ps), i(p.i) { p.ps = 0;}
+
 private:
     std::string *ps;
     int i;
