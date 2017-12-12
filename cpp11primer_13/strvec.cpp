@@ -1,5 +1,4 @@
 #include "strvec.h"
-#include <memory>
 
 //StrVec::StrVec(const StrVec &&s)
 //{
