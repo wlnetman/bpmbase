@@ -7,12 +7,18 @@ CONFIG += static_runtime
  
 
 HEADERS += \
-    sales_data.h
+    sales_data.h \
+    strvec.h \
+    strblob.h \
+    strblobptr.h
 
 
 SOURCES += \
+    strvec.cpp \
+    sales_data.cpp \
     main.cpp \
-    sales_data.cpp
+    strblob.cpp \
+    strblobptr.cpp
 
 
 include(../msvc.pri)

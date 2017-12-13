@@ -1,12 +1,5 @@
 #include "sales_data.h"
 
-Sales_data::Sales_data(const Sales_data &oig):
-    bookNo(oig.bookNo),
-    units_sold(oig.units_sold),
-    revenue(oig.revenue)
-{
-}
-
 Sales_data& Sales_data::operator=(const Sales_data &rhs)
 {
     bookNo = rhs.bookNo;
@@ -48,3 +41,16 @@ Sales_data operator+(const Sales_data &lhs, const Sales_data& rhs)
     sum += rhs;
     return sum;
 }
+
+bool operator==(const Sales_data &lhs, const Sales_data& rhs)
+{
+    return lhs.isbn() == rhs.isbn() &&
+            lhs.units_sold == rhs.units_sold &&
+            lhs.revenue == rhs.revenue;
+}
+
+bool operator!=(const Sales_data &lhs, const Sales_data& rhs)
+{
+    return !(lhs == rhs);
+}
+
