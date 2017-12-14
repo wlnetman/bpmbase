@@ -11,14 +11,14 @@ friend std::ostream &print(std::ostream&, const Sales_data &);
 
 public:
     // 构造函数
-    //Sales_data() = default;
+    Sales_data() = default;
     //Sales_data(const std::string &s = ""):bookNo(s){}
     Sales_data(const std::string &s, unsigned n, double p):
         bookNo(s), units_sold(n), revenue(p*n) { }
     //Sales_data(std::istream &);
     // 委托构造函数
-    Sales_data():Sales_data("", 0, 0) {}
-    Sales_data(std::string s):Sales_data(s, 0, 0) {}
+    Sales_data(const std::string s):Sales_data("", 0, 0) {}
+    //Sales_data(std::string s):Sales_data(s, 0, 0) {}
     Sales_data(std::istream &is):Sales_data()
                                     { read(is, *this);}
 

@@ -7,6 +7,9 @@
 //    first_free = cap = newdata.second;
 //}
 
+// 必须初始化才行
+std::allocator<std::string> StrVec::alloc;
+
 StrVec::StrVec(StrVec &&s) noexcept
     :elements(s.elements), first_free(s.first_free), cap(s.cap)
 {
