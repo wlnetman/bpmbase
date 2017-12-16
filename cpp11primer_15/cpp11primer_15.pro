@@ -10,7 +10,11 @@ HEADERS += \
     quote.h \
     bulk_quote.h \
     base.h \
-    disc_quote.h
+    disc_quote.h \
+    basket.h \
+    query.h \
+    textquery.h \
+    queryresult.h
 
 
 SOURCES += \
@@ -18,7 +22,11 @@ SOURCES += \
     quote.cpp \
     bulk_quote.cpp \
     base.cpp \
-    disc_quote.cpp
+    disc_quote.cpp \
+    basket.cpp \
+    query.cpp \
+    textquery.cpp \
+    queryresult.cpp
 
 
 include(../msvc.pri)

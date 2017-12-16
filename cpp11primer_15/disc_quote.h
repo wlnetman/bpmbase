@@ -12,6 +12,8 @@ public:
         Quote(book, price),
         quantity(qty), discount(disc) { }
     double net_price(size_t n) const = 0;
+    std::pair<std::size_t, double> discount_policy() const
+                    { return {quantity, discount}; }
 protected:
     std::size_t quantity = 0;
     double discount = 0.0;

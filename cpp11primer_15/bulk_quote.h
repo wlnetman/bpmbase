@@ -11,6 +11,8 @@ public:
         Quote(book, p), min_qty(qty), discount(disc) { }
     //double net_price(std::size_t ) const override;
     double net_price(std::size_t ) const;
+    std::pair<std::size_t, double> discount_policy() const
+                    { return {min_qty, discount}; }
 private:
     std::size_t min_qty = 0;
     double discount = 0.0;
