@@ -16,12 +16,18 @@ class QueryResult
     friend class TextQuery;
     // TODO: BUG
     using line_no = std::vector<std::string>::size_type;
+    using line_it = std::set<line_no>::const_iterator;
+
     friend std::ostream& print(std::ostream&, const QueryResult& );
 public:
     QueryResult::QueryResult(std::string s,
                              std::shared_ptr<std::set<line_no>> p,
                              std::shared_ptr<std::vector<std::string>> f):
         sought(s), lines(p), file(f){}
+
+    line_it begin() const { return lines->cbegin(); }
+    line_it end() const   { return lines->cend(); }
+    std::shared_ptr<std::vector<std::string>> get_file() { return file; }
 
     std::string sought;
     std::shared_ptr<std::set<line_no>> lines;
