@@ -22,6 +22,6 @@ SUBDIRS = \
     cpp11primer_13 \
     cpp11primer_14 \
     cpp11primer_15 \
-    cpp11primer_16
-
+    cpp11primer_16 \
+    indepthcpp_1
 

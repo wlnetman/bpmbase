@@ -6,10 +6,15 @@ CONFIG += static_runtime
 
  
 HEADERS += \
-    template_compile.h
+    template_compile.h \
+    iterator.h \
+    impl.h \
+    range.h
 
 SOURCES += \
-    main.cpp
+    main.cpp \
+    iterator.cpp \
+    impl.cpp
 
 include(../msvc.pri)
 include(../utils.pri)

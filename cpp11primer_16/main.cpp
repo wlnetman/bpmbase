@@ -19,11 +19,11 @@ void chapter16_1()
     std::vector<int> vec1{1,2,3}, vec2{4,5,6};
     std::cout<< compare(vec1, vec2) <<std::endl;
 
-    Blob<int> ia;
-    Blob<int> ia2 = { 0,1,2,3,4};
+    //Blob<int> ia;
+    //Blob<int> ia2 = { 0,1,2,3,4};
 
-    Blob<std::string> names;
-    Blob<double> prices;
+    //Blob<std::string> names{"Wang","DaSHI"};
+    //Blob<double> prices;
 
 }
 

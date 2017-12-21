@@ -17,7 +17,8 @@ public:
     typedef typename std::vector<T>::size_type size_type;
 
     Blob();
-    Blob(std::initializer_list<T> il);
+    Blob(std::initializer_list<T> il)
+        {/* for (auto it = il.begin(); it!= il.end(); ++it) data->push_back(*il); */}
     size_type size() const { return data->size(); }
     bool empty() const { return data->empty(); }
     void push_back(const T &t) { data->push_back(t);}
