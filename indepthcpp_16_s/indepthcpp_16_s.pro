@@ -16,6 +16,6 @@ include(../libevent.pri)
 include(../myboost.pri)
 
 HEADERS += \
-    connector.hpp \
     rwhandler.h \
+    server.hpp \
     message.hpp

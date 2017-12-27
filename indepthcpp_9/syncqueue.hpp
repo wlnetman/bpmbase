@@ -22,7 +22,7 @@ public:
         Add(x);
     }
     
-    void Put(const T&&x)
+    void Put( T&&x )
     {
         Add( std::forward<T>(x) );
     }
@@ -113,7 +113,7 @@ private:
         if(m_needStop)
             return;
         m_queue.push_back(std::forward<F>(x));
-        m_notEmpty.notify_noe();
+        m_notEmpty.notify_one();
     }
 
 private:
@@ -124,6 +124,5 @@ private:
     int m_maxSize;
     bool m_needStop;
 };
-
 
 #endif //SYNCQUEUE

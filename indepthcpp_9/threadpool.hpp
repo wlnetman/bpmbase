@@ -15,7 +15,10 @@ public:
     using Task = std::function<void()>;
     ThreadPool(int numThreads = std::thread::hardware_concurrency()) :
         m_queue(MaxTaskCount)
-        {}
+    {
+        Start(numThreads);
+    }
+
     ~ThreadPool(void)
     {
         Stop();

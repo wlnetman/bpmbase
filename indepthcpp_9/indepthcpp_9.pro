@@ -1,6 +1,7 @@
-CONFIG += app
+TEMPLATE = app
+CONFIG += console
 CONFIG -= qt
-CONFIG += app_bundle
+CONFIG -= app_bundle
 CONFIG += static_runtime
 
 HEADERS += \

@@ -16,7 +16,7 @@ void TestThdPool()
             });
         }
     });
-    
+
     std::thread thd2([&pool] {
         for(int i = 0; i < 10; ++i)
         {
