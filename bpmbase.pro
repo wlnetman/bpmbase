@@ -26,4 +26,6 @@ SUBDIRS = \
     indepthcpp_1 \
     indepthcpp_4 \
     indepthcpp_5 \
-    indepthcpp_6
+    indepthcpp_6 \
+    indepthcpp_9
+
