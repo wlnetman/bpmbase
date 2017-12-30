@@ -29,4 +29,5 @@ SUBDIRS = \
     indepthcpp_6 \
     indepthcpp_9 \
     indepthcpp_16_s \
-    indepthcpp_16_c
+    indepthcpp_16_c \
+    ctpdemo
