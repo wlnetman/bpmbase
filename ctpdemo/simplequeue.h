@@ -27,15 +27,9 @@ public:
         deque_.pop_front();
     }
 
-    int size()
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return deque_.size();
-    }
-
 private:
-    std::mutex mutex_;
-    std::deque<T> deque_;
+    std::mutex      mutex_;
+    std::deque<T>   deque_;
     std::condition_variable notempty_;
 };
 

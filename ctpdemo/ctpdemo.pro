@@ -3,6 +3,10 @@ CONFIG += console
 CONFIG -= app_bundle
 CONFIG += static_runtime
 
+HEADERS += \
+    marketcollection.h \
+    simplequeue.h
+
 SOURCES += \
         main.cpp \
     marketcollection.cpp
@@ -14,7 +18,3 @@ include(../glog.pri)
 include(../gtest.pri)
 include(../myboost.pri)
 include(../ctpsdk.pri)
-
-HEADERS += \
-    marketcollection.h \
-    simplequeue.h

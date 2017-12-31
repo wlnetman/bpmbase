@@ -6,12 +6,16 @@
 #include <thread>
 
 #include "fmt/format.h"
+#include "utils/strutil.h"
 #include "marketcollection.h"
 
-MarketCollection::MarketCollection( std::string symbol )
+void MarketCollection::set_symbol(std::string &symbols)
 {
-    exit_ = false;
-    symbols_.push_back(symbol);
+    auto all = StrUtil::split( symbols, ";");
+    for( auto item : all)
+    {
+        symbols_.push_back(item);
+    }
 }
 
 void MarketCollection::OnFrontConnected()
@@ -35,7 +39,7 @@ void MarketCollection::do_login()
 
     int nRequestId = 0;
     // TODO:异常处理
-    if(api_)
+    if( api_ )
         api_->ReqUserLogin( &req, nRequestId);
 }
 
@@ -110,8 +114,8 @@ void MarketCollection::do_collect_tick(CThostFtdcDepthMarketDataField *pData)
     std::string tick_line;
     tick_line = fmt::format("{} {} {} {} {} {} {} {} {} {}",
                         pData->ActionDay,
-                        pData->InstrumentID,
                         pData->UpdateTime,
+                        pData->InstrumentID,
                         pData->LastPrice,
                         pData->OpenPrice,
                         pData->HighestPrice,
@@ -134,12 +138,6 @@ void MarketCollection::queue_save()
     }
 
     std::cout<< "queue save exit" << std::endl;
-}
-
-void MarketCollection::start_save_thread()
-{
-    std::thread t( [this]{ queue_save(); });
-    t.detach();
 }
 
 // 废弃

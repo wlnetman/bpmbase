@@ -10,12 +10,13 @@
 class MarketCollection : public CThostFtdcMdSpi
 {
 public:
-    MarketCollection() = default;
-    MarketCollection(std::string symbol);
+    MarketCollection() : exit_(false) {}
     ~MarketCollection(){ exit_ = true; }
 
     void set_mdapi(CThostFtdcMdApi* p) { api_ = p; }
-    void start_save_thread();
+    void set_symbol(std::string &symbols);
+    //void start_save_thread();
+    void queue_save();
 
 public:
     void OnFrontConnected();
@@ -40,7 +41,6 @@ private:
     void do_login();
     void do_subscribe();
     void do_collect_tick(CThostFtdcDepthMarketDataField *pData);
-    void queue_save();
 
 private:
     CThostFtdcMdApi *api_;
