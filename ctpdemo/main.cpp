@@ -8,7 +8,6 @@
 
 int main(int argc, char* argv[])
 {
-
     // 本地流文件生成的目录
     std::string flow_path = "";
     char front[] = {"tcp://180.168.146.187:10031"};
@@ -16,6 +15,7 @@ int main(int argc, char* argv[])
 
     CThostFtdcMdApi *api = CThostFtdcMdApi::CreateFtdcMdApi(flow_path.c_str(), false, false);
     collector.set_mdapi(api);
+    collector.start_save_thread();
     api->RegisterSpi(&collector);
     api->RegisterFront(front);
     api->Init();

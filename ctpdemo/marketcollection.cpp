@@ -1,13 +1,16 @@
-#include "marketcollection.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <thread>
+
 #include "fmt/format.h"
+#include "marketcollection.h"
 
 MarketCollection::MarketCollection( std::string symbol )
 {
+    exit_ = false;
     symbols_.push_back(symbol);
 }
 
@@ -95,7 +98,6 @@ void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDat
 {
     //std::cout<< "OnRtnDepthMarketData: " << std::endl;
 
-    // TODO: 缓存起来放到io线程写文件
     // TODO: 放到map查找
     for( auto item : symbols_){
         if( std::strcmp(pData->InstrumentID, item.c_str()) == 0 )
@@ -105,16 +107,39 @@ void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDat
 
 void MarketCollection::do_collect_tick(CThostFtdcDepthMarketDataField *pData)
 {
-    std::cout << fmt::format("{} {} {} {} {} {} {} {} {}\n",
-                        pData->InstrumentID,
+    std::string tick_line;
+    tick_line = fmt::format("{} {} {} {} {} {} {} {} {} {}",
                         pData->ActionDay,
+                        pData->InstrumentID,
                         pData->UpdateTime,
+                        pData->LastPrice,
                         pData->OpenPrice,
                         pData->HighestPrice,
                         pData->LowestPrice,
                         pData->PreClosePrice,
                         pData->OpenInterest,
                         pData->Volume);
+    simple_queue_.put(tick_line);
+}
+
+void MarketCollection::queue_save()
+{
+    std::cout<< "queue save thread :"
+             << std::this_thread::get_id() << std::endl;
+
+    while ( !exit_ ) {
+        std::string line;
+        simple_queue_.get(line);
+        std::cout << line << std::endl;
+    }
+
+    std::cout<< "queue save exit" << std::endl;
+}
+
+void MarketCollection::start_save_thread()
+{
+    std::thread t( [this]{ queue_save(); });
+    t.detach();
 }
 
 // 废弃

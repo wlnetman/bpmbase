@@ -16,4 +16,5 @@ include(../myboost.pri)
 include(../ctpsdk.pri)
 
 HEADERS += \
-    marketcollection.h
+    marketcollection.h \
+    simplequeue.h

@@ -4,15 +4,18 @@
 #include "ctpsdk/ThostFtdcMdApi.h"
 #include <string>
 #include <vector>
+#include <atomic>
+#include "simplequeue.h"
 
 class MarketCollection : public CThostFtdcMdSpi
 {
 public:
     MarketCollection() = default;
     MarketCollection(std::string symbol);
-    ~MarketCollection(){}
+    ~MarketCollection(){ exit_ = true; }
 
     void set_mdapi(CThostFtdcMdApi* p) { api_ = p; }
+    void start_save_thread();
 
 public:
     void OnFrontConnected();
@@ -37,10 +40,13 @@ private:
     void do_login();
     void do_subscribe();
     void do_collect_tick(CThostFtdcDepthMarketDataField *pData);
+    void queue_save();
 
 private:
     CThostFtdcMdApi *api_;
     std::vector<std::string> symbols_;
+    SimpleQueue<std::string> simple_queue_;
+    std::atomic<bool> exit_;
 };
 
 #endif // MARKETCOLLECTION_H
