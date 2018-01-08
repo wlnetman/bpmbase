@@ -6,33 +6,44 @@
 #include <thread>
 #include <chrono>
 #include <ctime>
+#include <memory>
 
 #include "fmt/format.h"
 #include "utils/strutil.h"
 #include "utils/timeutil.h"
+#include "utils/logging.h"
 #include "marketcollection.h"
 
-void MarketCollection::set_symbol(std::string &symbols)
+void MarketCollection::set_symbol(const std::string &symbols)
 {
     auto all = StrUtil::split( symbols, ";");
     for( auto item : all)
     {
         symbols_.push_back(item);
     }
+    LOG(INFO)<< "set symbol: " << symbols << "\n";
 }
 
-void MarketCollection::set_user(std::string& broker,
-                                 std::string& userid,
-                                 std::string &password)
+void MarketCollection::set_main_symbol(const std::string &symbol)
+{
+    main_symbol_ = symbol;
+    LOG(INFO)<< "set main symbol: " << main_symbol_ << "\n";
+}
+
+void MarketCollection::set_user(const std::string& broker,
+                                const std::string& userid,
+                                const std::string &password)
 {
     broker_    = broker;
     userid_    = userid;
     password_  = password;
+
+    LOG(INFO)<< "set user: " << broker << " userid: " << userid << "\n";
 }
 
 void MarketCollection::OnFrontConnected()
 {
-    std::cout<< "OnFrontConnected" << std::endl;
+    LOG(INFO)<< "OnFrontConnected\n";
 
     do_login();
 }
@@ -53,7 +64,7 @@ void MarketCollection::do_login()
 
 void MarketCollection::OnFrontDisconnected(int nReason)
 {
-    std::cout<< "OnFrontDisconnected:" << nReason << std::endl;
+    LOG(INFO)<< "OnFrontDisconnected\n";
 }
 
 // 登录请求响应
@@ -61,8 +72,8 @@ void MarketCollection::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin
                     CThostFtdcRspInfoField *pRspInfo,
                     int nRequestId, bool bIsLast)
 {
-    std::cout<< "OnRspUserLogin:" << nRequestId << std::endl;
-    //
+    LOG(INFO)<< "OnRspUserLogin" << nRequestId << std::endl;
+
     do_subscribe();
 }
 
@@ -79,8 +90,9 @@ void MarketCollection::do_subscribe()
         std::string &symble = item;
         char *instrument[1] = {(char*)symble.c_str()};
         api_->SubscribeMarketData( instrument, 1);
+        LOG(INFO)<< "subscribe: " << item;
     }
-    //delete []instrument;
+    //delete []instrument;    
 }
 
 // 订阅行情应答
@@ -88,80 +100,109 @@ void MarketCollection::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSp
                         CThostFtdcRspInfoField *pRspInfo,
                         int nRequestID, bool bIsLast)
 {
-    std::cout<< "OnRspSubMarketData:" << nRequestID << std::endl;
+    //LOG(INFO)<< "OnRspSubMarketData " << nRequestID << "\n";
 }
 
 void MarketCollection::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
                           CThostFtdcRspInfoField *pRspInfo,
                           int nRequestID, bool bIsLast)
 {
-    std::cout<< "OnRspUnSubMarketData : " << nRequestID << std::endl;
+    LOG(INFO)<< "OnRspUnSubMarketData " << nRequestID << "\n";
 }
 
 void MarketCollection::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestId, bool bIsLast)
 {
-    std::cout<< "OnRspError:" << nRequestId << std::endl;
+    LOG(INFO)<< "OnRspError: " << nRequestId << "\n";
 }
 
 
 void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData)
 {
-    //std::cout<< "OnRtnDepthMarketData: " << std::endl;
+    //LOG(INFO)<< "OnRtnDepthMarketData: " << pData->InstrumentID;
 
-    auto i = symbol_tick_.find(pData->InstrumentID);
-    if( i != symbol_tick_.end() ){
-        do_collect_tick(pData);
-    } else {
-        bool subscribe = false;
-        // 1,第一条数据
-        for( auto item : symbols_){
-            if( std::strcmp(pData->InstrumentID, item.c_str()) == 0 ) {
-                do_collect_tick(pData);
-                subscribe = false;
-            }
+    bool subscribe = false;
+    // 1,第一条数据
+    for( auto item : symbols_){
+        if( std::strcmp(pData->InstrumentID, item.c_str()) == 0 ) {
+            do_collect_tick(pData);
+            subscribe = true;
         }
-        // 2,不在symbols中错误的数据
-        if( !subscribe )
-            LOG(ERROR) << " Error DepthMarketData\n";
+    }
+    // 2,不在symbols中错误的数据
+    if( !subscribe )
+        LOG(ERROR) << " Error DepthMarketData\n";
+
+    // 3, 收到主力合约后，通知可以计算指数
+    if( std::strcmp(main_symbol_.c_str(), pData->InstrumentID) == 0){
+        //LOG(INFO)<< "notify calc index";
+        simple_queue_.notify_get();
     }
 }
 
 void MarketCollection::do_collect_tick(CThostFtdcDepthMarketDataField *pData)
 {
-    TickData data;
+    //std::shared_ptr<TickData> tick = std::make_shared<TickData>();
+    TickData tick;
 
     //pData->UpdateMillisec;  // int
     std::string str_time = pData->ActionDay;
     str_time += pData->UpdateTime;
-    data.actionDatetime = bpm_str2ctime(str_time.c_str(), "%Y %m %d %HH:%MM:%ss");
+    tick.actionDatetime = bpm_str2ctime(str_time.c_str(), "%Y %m %d %HH:%MM:%ss");
 
+    std::strcpy(tick.symbol, pData->InstrumentID);
+
+    tick.lastPrice     = pData->LastPrice;
+    tick.openPrice     = pData->OpenPrice;
+    tick.highPrice     = pData->HighestPrice;
+    tick.lowPrice      = pData->LowestPrice;
+    tick.preClosePrice = pData->PreClosePrice;
+    tick.openInterest  = pData->OpenInterest;
+    tick.volume        = pData->Volume;
+
+    // 调试信息
     std::string tick_line;
-    tick_line = fmt::format("{} {} {} {} {} {} {} {} {} {}",
-                        pData->ActionDay,
-                        pData->UpdateTime,
-                        pData->InstrumentID,
-                        pData->LastPrice,
-                        pData->OpenPrice,
-                        pData->HighestPrice,
-                        pData->LowestPrice,
-                        pData->PreClosePrice,
-                        pData->OpenInterest,
-                        pData->Volume);
-    simple_queue_.put(tick_line);
+    tick_line = fmt::format("{} {} {} {}",
+                            pData->ActionDay,
+                            pData->UpdateTime,
+                            tick.symbol,
+                            tick.lastPrice);
+                            //tick.openPrice,
+                            //tick.highPrice,
+                            //tick.lowPrice,
+                            //tick.preClosePrice,
+                            //tick.openInterest,
+                            //tick.volume);
+    //std::cout<< tick_line << std::endl;
+    LOG(INFO)<< tick_line;
+
+    simple_queue_.put(tick.symbol, tick);
+}
+
+double MarketCollection::calc_index(std::vector<TickData>& tick)
+{
+    double total_openInterest = 0.0;
+    double prices_scale = 0.0;
+    for( const auto& i : tick ){
+        total_openInterest += i.openInterest;
+        prices_scale += i.lastPrice * i.openInterest;
+    }
+    return  prices_scale / total_openInterest;
 }
 
 void MarketCollection::queue_save()
 {
-    std::cout<< "queue save thread :"
-             << std::this_thread::get_id() << std::endl;
+    LOG(INFO)<< "queue save thread : "
+             << std::this_thread::get_id() << "\n";
 
     while ( !exit_ ) {
-        std::string line;
-        simple_queue_.get(line);
-        std::cout << line << std::endl;
-    }
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    std::cout<< "queue save exit" << std::endl;
+        std::vector<TickData> tick;
+        simple_queue_.get( tick );
+        double rb8888 = calc_index(tick);
+        LOG(INFO)<< "rb8888" << " ["<< static_cast<int>(rb8888) << "]";
+    }
+    LOG(INFO)<< "queue save exit \n";
 }
 
 // 废弃

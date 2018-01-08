@@ -9,6 +9,8 @@
 #include "simplequeue.h"
 
 // Tick信息
+#define STR_LEN_SMALL 16 // 小字符串长度
+#define STR_LEN_BIG 64 // 大字符串长度
 struct TickData {
     char symbol[STR_LEN_SMALL]; // 合约代码
     long long actionDatetime; // 时间,time_t
@@ -41,10 +43,14 @@ public:
     ~MarketCollection(){ exit_ = true; }
 
     void set_mdapi(CThostFtdcMdApi* p) { api_ = p; }
-    void set_symbol(std::string &symbols);
+    void set_symbol(const std::string &symbols);
+    void set_main_symbol(const std::string &symbol);
     //void start_save_thread();
     void queue_save();
-    void set_user(std::string& broker, std::string& userid, std::string &password);
+    double calc_index(std::vector<TickData>& tick);
+    void set_user(const std::string& broker,
+                  const std::string& userid,
+                  const std::string& password);
 
 public:
     void OnFrontConnected();
@@ -73,11 +79,11 @@ private:
 private:
     CThostFtdcMdApi *api_;
     std::vector<std::string> symbols_;
-    std::map<std::string, TickData> symbol_tick_;
     std::string broker_;
     std::string userid_;
     std::string password_;
-    SimpleQueue<std::string> simple_queue_;
+    std::string main_symbol_;
+    SimpleQueue<TickData> simple_queue_;
     std::atomic<bool> exit_;
 };
 
