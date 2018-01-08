@@ -195,7 +195,7 @@ void MarketCollection::queue_save()
              << std::this_thread::get_id() << "\n";
 
     while ( !exit_ ) {
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
         std::vector<TickData> tick;
         simple_queue_.get( tick );
