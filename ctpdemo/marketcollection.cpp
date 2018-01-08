@@ -4,9 +4,12 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <chrono>
+#include <ctime>
 
 #include "fmt/format.h"
 #include "utils/strutil.h"
+#include "utils/timeutil.h"
 #include "marketcollection.h"
 
 void MarketCollection::set_symbol(std::string &symbols)
@@ -18,6 +21,15 @@ void MarketCollection::set_symbol(std::string &symbols)
     }
 }
 
+void MarketCollection::set_user(std::string& broker,
+                                 std::string& userid,
+                                 std::string &password)
+{
+    broker_    = broker;
+    userid_    = userid;
+    password_  = password;
+}
+
 void MarketCollection::OnFrontConnected()
 {
     std::cout<< "OnFrontConnected" << std::endl;
@@ -27,15 +39,11 @@ void MarketCollection::OnFrontConnected()
 
 void MarketCollection::do_login()
 {
-    std::string broker = {"9999"};
-    std::string userid = {"051031"};
-    std::string password = {"zaq1xsw2"};
-
     CThostFtdcReqUserLoginField req;
     std::memset(&req, 0, sizeof(req));
-    std::memcpy(&req.BrokerID, broker.c_str(), broker.length());
-    std::memcpy(&req.UserID, userid.c_str(), userid.length());
-    std::memcpy(&req.Password, password.c_str(), password.length());
+    std::memcpy(&req.BrokerID, broker_.c_str(), broker_.length());
+    std::memcpy(&req.UserID, userid_.c_str(), userid_.length());
+    std::memcpy(&req.Password, password_.c_str(), password_.length());
 
     int nRequestId = 0;
     // TODO:异常处理
@@ -65,8 +73,6 @@ void MarketCollection::do_subscribe()
         return;
     }
 
-    // TODO : vector转字符串数组
-    //        std::strcpy(instrument, item.c_str());
     // easyctp是每一个发送一次订阅请求
     for( auto &item : symbols_) {
         std::cout<< item << std::endl;
@@ -102,15 +108,33 @@ void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDat
 {
     //std::cout<< "OnRtnDepthMarketData: " << std::endl;
 
-    // TODO: 放到map查找
-    for( auto item : symbols_){
-        if( std::strcmp(pData->InstrumentID, item.c_str()) == 0 )
-            do_collect_tick(pData);
+    auto i = symbol_tick_.find(pData->InstrumentID);
+    if( i != symbol_tick_.end() ){
+        do_collect_tick(pData);
+    } else {
+        bool subscribe = false;
+        // 1,第一条数据
+        for( auto item : symbols_){
+            if( std::strcmp(pData->InstrumentID, item.c_str()) == 0 ) {
+                do_collect_tick(pData);
+                subscribe = false;
+            }
+        }
+        // 2,不在symbols中错误的数据
+        if( !subscribe )
+            LOG(ERROR) << " Error DepthMarketData\n";
     }
 }
 
 void MarketCollection::do_collect_tick(CThostFtdcDepthMarketDataField *pData)
 {
+    TickData data;
+
+    //pData->UpdateMillisec;  // int
+    std::string str_time = pData->ActionDay;
+    str_time += pData->UpdateTime;
+    data.actionDatetime = bpm_str2ctime(str_time.c_str(), "%Y %m %d %HH:%MM:%ss");
+
     std::string tick_line;
     tick_line = fmt::format("{} {} {} {} {} {} {} {} {} {}",
                         pData->ActionDay,

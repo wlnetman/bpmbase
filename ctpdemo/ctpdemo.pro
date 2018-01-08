@@ -18,3 +18,6 @@ include(../glog.pri)
 include(../gtest.pri)
 include(../myboost.pri)
 include(../ctpsdk.pri)
+
+DISTFILES += \
+    ChangeLog.txt
