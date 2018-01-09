@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     api->RegisterFront(front);
 
     // 开始写文件线程
-    std::thread t( [&collector]{ collector.queue_save(); });
+    std::thread t( [&collector]{ collector.consumer_thread(); });
     t.detach();
 
     api->Init();

@@ -72,7 +72,7 @@ void MarketCollection::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin
                     CThostFtdcRspInfoField *pRspInfo,
                     int nRequestId, bool bIsLast)
 {
-    LOG(INFO)<< "OnRspUserLogin" << nRequestId << std::endl;
+    LOG(INFO)<< "OnRspUserLogin";
 
     do_subscribe();
 }
@@ -86,7 +86,6 @@ void MarketCollection::do_subscribe()
 
     // easyctp是每一个发送一次订阅请求
     for( auto &item : symbols_) {
-        std::cout<< item << std::endl;
         std::string &symble = item;
         char *instrument[1] = {(char*)symble.c_str()};
         api_->SubscribeMarketData( instrument, 1);
@@ -120,87 +119,112 @@ void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDat
 {
     //LOG(INFO)<< "OnRtnDepthMarketData: " << pData->InstrumentID;
 
+    // TODO: 检查数据有效性，1，交易时间，持仓量为0 ，错误数据
+    push_depthdata_to_tickquque( pData );
+}
+
+//   DepthMarketDataField 转换为 TickData 后存入生产者队列
+void MarketCollection::push_depthdata_to_tickquque(CThostFtdcDepthMarketDataField *pData)
+{
+    std::shared_ptr<TickData> tick = std::make_shared<TickData>();
+
+    std::strcpy(tick->symbol, pData->InstrumentID);
+
+    std::string str_time  = pData->ActionDay;
+    str_time             += pData->UpdateTime;
+    tick->actionDatetime  = bpm_str2ctime(str_time.c_str(), "%Y %m %d %HH:%MM:%ss");
+    tick->lastPrice       = pData->LastPrice;
+    tick->openPrice       = pData->OpenPrice;
+    tick->highPrice       = pData->HighestPrice;
+    tick->lowPrice        = pData->LowestPrice;
+    tick->preClosePrice   = pData->PreClosePrice;
+    tick->openInterest    = pData->OpenInterest;
+    tick->volume          = pData->Volume;
+
+    producer_task_.put( tick );
+}
+
+bool MarketCollection::is_subscribe_symbol(const char* symbol)
+{
     bool subscribe = false;
-    // 1,第一条数据
-    for( auto item : symbols_){
-        if( std::strcmp(pData->InstrumentID, item.c_str()) == 0 ) {
-            do_collect_tick(pData);
+    for( auto item : symbols_) {
+        if( std::strcmp( symbol, item.c_str()) == 0 ) {
             subscribe = true;
+            break;
         }
     }
-    // 2,不在symbols中错误的数据
+
     if( !subscribe )
-        LOG(ERROR) << " Error DepthMarketData\n";
+        LOG(ERROR) << "Error Tick" << symbol;
 
-    // 3, 收到主力合约后，通知可以计算指数
-    if( std::strcmp(main_symbol_.c_str(), pData->InstrumentID) == 0){
-        //LOG(INFO)<< "notify calc index";
-        simple_queue_.notify_get();
-    }
+    return subscribe;
 }
 
-void MarketCollection::do_collect_tick(CThostFtdcDepthMarketDataField *pData)
-{
-    //std::shared_ptr<TickData> tick = std::make_shared<TickData>();
-    TickData tick;
-
-    //pData->UpdateMillisec;  // int
-    std::string str_time = pData->ActionDay;
-    str_time += pData->UpdateTime;
-    tick.actionDatetime = bpm_str2ctime(str_time.c_str(), "%Y %m %d %HH:%MM:%ss");
-
-    std::strcpy(tick.symbol, pData->InstrumentID);
-
-    tick.lastPrice     = pData->LastPrice;
-    tick.openPrice     = pData->OpenPrice;
-    tick.highPrice     = pData->HighestPrice;
-    tick.lowPrice      = pData->LowestPrice;
-    tick.preClosePrice = pData->PreClosePrice;
-    tick.openInterest  = pData->OpenInterest;
-    tick.volume        = pData->Volume;
-
-    // 调试信息
-    std::string tick_line;
-    tick_line = fmt::format("{} {} {} {}",
-                            pData->ActionDay,
-                            pData->UpdateTime,
-                            tick.symbol,
-                            tick.lastPrice);
-                            //tick.openPrice,
-                            //tick.highPrice,
-                            //tick.lowPrice,
-                            //tick.preClosePrice,
-                            //tick.openInterest,
-                            //tick.volume);
-    //std::cout<< tick_line << std::endl;
-    LOG(INFO)<< tick_line;
-
-    simple_queue_.put(tick.symbol, tick);
-}
-
-double MarketCollection::calc_index(std::vector<TickData>& tick)
+double MarketCollection::calc_index(TickVec& tick)
 {
     double total_openInterest = 0.0;
     double prices_scale = 0.0;
     for( const auto& i : tick ){
-        total_openInterest += i.openInterest;
-        prices_scale += i.lastPrice * i.openInterest;
+        total_openInterest += i->openInterest;
+        prices_scale += i->lastPrice * i->openInterest;
     }
     return  prices_scale / total_openInterest;
 }
 
-void MarketCollection::queue_save()
+void MarketCollection::calc_index(const char* symbol)
 {
-    LOG(INFO)<< "queue save thread : "
+    // 是指定的主力合约
+    if( std::strcmp( main_symbol_.c_str(), symbol) == 0 ) {
+        TickVec tmp_vec;
+        for( const auto & item : tick_mgr_ ){
+            // 取每个合约的最后一条记录
+            tmp_vec.push_back( item.second->back() );
+        }
+        double rb8888 = calc_index( tmp_vec );
+        LOG(INFO)<< "rb8888" << " ["<< static_cast<int>(rb8888) << "]";
+    }
+}
+
+void MarketCollection::consumer_thread()
+{
+    LOG(INFO)<< "consumer_thread : "
              << std::this_thread::get_id() << "\n";
 
     while ( !exit_ ) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::shared_ptr<TickData> tick = nullptr;
+        producer_task_.get( tick );
 
-        std::vector<TickData> tick;
-        simple_queue_.get( tick );
-        double rb8888 = calc_index(tick);
-        LOG(INFO)<< "rb8888" << " ["<< static_cast<int>(rb8888) << "]";
+        auto item = tick_mgr_.find(tick->symbol);
+        if( item!= tick_mgr_.end() ){
+
+            //LOG(INFO)<< "push_back [" << tick->symbol << "] [count:" << it->second->size() << "]";
+            item->second->push_back( tick );
+
+        } else {
+
+            // 1, 检查是不是自己订阅的合约Tick
+            if( !is_subscribe_symbol( tick->symbol ) )
+                continue;
+
+            // 2, 来了一个订阅的新合约，保存在对应的数组里面
+            pTickVec vec = std::make_shared<TickVec>();
+            vec->resize( maxsize_tickvec_ );
+            vec->push_back(tick);
+            tick_mgr_[ std::string(tick->symbol) ] = vec;
+        }
+
+        // 输出tick
+        std::string tick_line;
+        tick_line = fmt::format("{} {} {} {}",
+                                bpm_ctime2str(tick->actionDatetime,"%H:%M:%S"),
+                                tick->symbol,
+                                tick->lastPrice,
+                                tick->openInterest );
+        LOG(INFO)<< tick_line;
+
+        // 计算指数
+        calc_index(tick->symbol);
     }
     LOG(INFO)<< "queue save exit \n";
 }

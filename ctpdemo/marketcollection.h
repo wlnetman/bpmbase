@@ -38,19 +38,24 @@ struct TickData {
 
 class MarketCollection : public CThostFtdcMdSpi
 {
+    using TickVec  = std::vector<std::shared_ptr<TickData>>;
+    using pTickVec = std::shared_ptr<TickVec>;
+
 public:
-    MarketCollection() : exit_(false) {}
+    MarketCollection() : exit_(false), maxsize_tickvec_(10000) {}
     ~MarketCollection(){ exit_ = true; }
 
     void set_mdapi(CThostFtdcMdApi* p) { api_ = p; }
     void set_symbol(const std::string &symbols);
     void set_main_symbol(const std::string &symbol);
-    //void start_save_thread();
-    void queue_save();
-    double calc_index(std::vector<TickData>& tick);
     void set_user(const std::string& broker,
                   const std::string& userid,
                   const std::string& password);
+
+    void consumer_thread();
+
+    double calc_index(TickVec& tick);
+    void   calc_index(const char* symbol);
 
 public:
     void OnFrontConnected();
@@ -74,7 +79,8 @@ public:
 private:
     void do_login();
     void do_subscribe();
-    void do_collect_tick(CThostFtdcDepthMarketDataField *pData);
+    void push_depthdata_to_tickquque(CThostFtdcDepthMarketDataField *pData);
+    bool is_subscribe_symbol(const char* symbol);
 
 private:
     CThostFtdcMdApi *api_;
@@ -83,7 +89,10 @@ private:
     std::string userid_;
     std::string password_;
     std::string main_symbol_;
-    SimpleQueue<TickData> simple_queue_;
+
+    int                                    maxsize_tickvec_;
+    std::map<std::string, pTickVec>        tick_mgr_;       // 根据symbol保存tick
+    SimpleQueue<std::shared_ptr<TickData>> producer_task_;  // 生产者队列
     std::atomic<bool> exit_;
 };
 
