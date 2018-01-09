@@ -5,7 +5,8 @@ CONFIG += static_runtime
 
 HEADERS += \
     marketcollection.h \
-    simplequeue.h
+    simplequeue.h \
+    tickdatadefine.h
 
 SOURCES += \
         main.cpp \

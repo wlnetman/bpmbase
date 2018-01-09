@@ -35,9 +35,9 @@ int main(int argc, char* argv[])
     api->RegisterSpi(&collector);
 
     // 交易时段
-    char front[] = {"tcp://180.168.146.187:10010"};
+    //char front[] = {"tcp://180.168.146.187:10010"};
     // 非交易时段
-    //char front[] = {"tcp://180.168.146.187:10031"};
+    char front[] = {"tcp://180.168.146.187:10031"};
     LOG(INFO)<< "front:" << front;
     api->RegisterFront(front);
 
