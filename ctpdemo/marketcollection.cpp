@@ -114,6 +114,7 @@ void MarketCollection::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequest
     LOG(INFO)<< "OnRspError: " << nRequestId << "\n";
 }
 
+static int g_rtn_batch = 0;
 
 void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData)
 {
@@ -121,6 +122,9 @@ void MarketCollection::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDat
 
     // TODO: 检查数据有效性，1，交易时间，持仓量为0 ，错误数据
     push_depthdata_to_tickquque( pData );
+
+    g_rtn_batch++;
+    //LOG(INFO)<< g_rtn_batch;
 }
 
 //   DepthMarketDataField 转换为 TickData 后存入生产者队列
@@ -165,6 +169,8 @@ double MarketCollection::calc_index(TickVec& tick)
     double total_openInterest = 0.0;
     double prices_scale = 0.0;
     for( const auto& i : tick ){
+        if(i->openInterest == 0 )
+            continue; // 除0崩溃
         total_openInterest += i->openInterest;
         prices_scale += i->lastPrice * i->openInterest;
     }
@@ -173,6 +179,9 @@ double MarketCollection::calc_index(TickVec& tick)
 
 void MarketCollection::calc_index(const char* symbol)
 {
+    if( tick_mgr_.size() < symbols_.size() )
+        return;
+
     // 是指定的主力合约
     if( std::strcmp( main_symbol_.c_str(), symbol) == 0 ) {
         TickVec tmp_vec;
@@ -181,7 +190,7 @@ void MarketCollection::calc_index(const char* symbol)
             tmp_vec.push_back( item.second->back() );
         }
         double rb8888 = calc_index( tmp_vec );
-        LOG(INFO)<< "rb8888" << " ["<< static_cast<int>(rb8888) << "]";
+        LOG(INFO)<< "rb8888" << " ["<< static_cast<int>(rb8888 + 0.5) << "]";
     }
 }
 
@@ -216,11 +225,10 @@ void MarketCollection::consumer_thread()
 
         // 输出tick
         std::string tick_line;
-        tick_line = fmt::format("{} {} {} {}",
+        tick_line = fmt::format("{} {} {}",
                                 bpm_ctime2str(tick->actionDatetime,"%H:%M:%S"),
                                 tick->symbol,
-                                tick->lastPrice,
-                                tick->openInterest );
+                                tick->lastPrice );
         LOG(INFO)<< tick_line;
 
         // 计算指数
