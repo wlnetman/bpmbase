@@ -140,6 +140,7 @@ void MarketCollection::push_depthdata_to_tickquque(CThostFtdcDepthMarketDataFiel
     std::string str_time  = pData->ActionDay;
     str_time             += " ";
     str_time             += pData->UpdateTime;
+    tick->updateMs        = pData->UpdateMillisec;
     tick->actionDatetime  = bpm_str2ctime(str_time.c_str(), "%Y%m%d %H:%M:%S");
     tick->lastPrice       = pData->LastPrice;
     tick->openPrice       = pData->OpenPrice;
@@ -147,7 +148,17 @@ void MarketCollection::push_depthdata_to_tickquque(CThostFtdcDepthMarketDataFiel
     tick->lowPrice        = pData->LowestPrice;
     tick->preClosePrice   = pData->PreClosePrice;
     tick->openInterest    = pData->OpenInterest;
-    tick->volume          = pData->Volume;
+    //tick->volume        = ; // TODO: 本次Volume-上个Volume
+    tick->totalVolume     = pData->Volume;
+    tick->askPrice        = pData->AskPrice1;
+    tick->bidPrice        = pData->BidPrice1;
+    tick->askVolume       = pData->AskVolume1;
+    tick->bidVolume       = pData->BidVolume1;
+    tick->upperLimit      = pData->UpperLimitPrice;
+    tick->lowerLimit      = pData->LowerLimitPrice;
+    tick->averagePrice    = pData->AveragePrice;
+    tick->settlementPrice = pData->SettlementPrice;
+    tick->preSettlementPrice = pData->PreSettlementPrice;
 
     producer_task_.put( tick );
 }
@@ -222,13 +233,13 @@ void MarketCollection::consumer_thread()
 
             // 2, 来了一个订阅的新合约，保存在对应的数组里面
             pTickVec vec = std::make_shared<TickVec>();
-            //vec->resize( maxsize_tickvec_ );
+            vec->reserve( maxsize_tickvec_ );
             vec->push_back(tick);
             tick_mgr_[ std::string(tick->symbol) ] = vec;
         }
 
         // 保存tick到文件
-        write_tick_to_file();
+        //save_tick_to_file_txt();
 
         // 计算指数
         calc_index(tick->symbol);
@@ -237,16 +248,18 @@ void MarketCollection::consumer_thread()
 }
 
 std::chrono::system_clock::time_point last_write = std::chrono::system_clock::now();
-void MarketCollection::write_tick_to_file()
+void MarketCollection::save_tick_to_file_txt()
 {
+    // 隔段时间刷新一次到文件
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
     if( std::chrono::duration_cast<std::chrono::seconds>( now - last_write).count() < 60 )
         return;
 
     last_write = now;
 
-    // 隔段时间刷新一次到文件
     for( const auto& v : tick_mgr_){
+
+        DLOG_ASSERT( !v.second->empty() );
 
         std::string fname;
         fname = fmt::format("C:\\temp\\tick\\{}-{}.txt",
@@ -255,38 +268,67 @@ void MarketCollection::write_tick_to_file()
 
         std::ofstream f( fname.c_str(), std::ofstream::out | std::ofstream::trunc ); // 隐含输出截断
 
-        for( std::shared_ptr<TickData> tick : (*v.second) ){
+        for( std::shared_ptr<TickData> tick : *(v.second) ){
             std::string s;
-            s = fmt::format("{} {}.{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
-                            tick->symbol,
-                            bpm_ctime2str(tick->actionDatetime,"%H:%M:%S"),
+            s = fmt::format("{}.{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
+                            bpm_ctime2str(tick->actionDatetime, "%Y%m%d %H:%M:%S"),
                             tick->updateMs,
+                            tick->symbol,
                             tick->lastPrice,
-                            tick->volume,
-                            tick->totalVolume,
-                            tick->openInterest,
-                            tick->askPrice,
-                            tick->bidPrice,
-                            tick->askVolume,
-                            tick->bidVolume,
                             tick->openPrice,
                             tick->highPrice,
                             tick->lowPrice,
                             tick->preClosePrice,
-                            tick->upperLimit,
-                            tick->lowerLimit,
                             tick->averagePrice,
                             tick->settlementPrice,
-                            tick->preSettlementPrice);
+                            tick->preSettlementPrice,
+                            tick->totalVolume,
+                            //tick->volume,
+                            tick->openInterest,
+                            tick->askPrice,
+                            tick->askVolume,
+                            tick->bidPrice,
+                            tick->bidVolume,
+                            tick->upperLimit,
+                            tick->lowerLimit);
             //LOG(INFO)<< s;
-
-            if( is_main_symbol(tick->symbol) )
-                LOG(INFO)<< s;
 
             f << s;
         }
         f.flush();
      }
+
+    save_tick_to_file_bin();
+}
+
+void MarketCollection::save_tick_to_file_bin()
+{
+    for( const auto& v : tick_mgr_){
+
+        DLOG_ASSERT( !v.second->empty());
+
+        std::string fname;
+        fname = fmt::format("C:\\temp\\tick\\{}-{}.dat",
+                            v.first,
+                            bpm_ctime2str( v.second->front()->actionDatetime,"%Y%m%d"));
+
+        std::ofstream f( fname.c_str(), std::ofstream::out | std::ofstream::binary ); // 隐含输出截断
+
+        f.write( (const char*)(v.second->data()), v.second->size() * sizeof(TickData) );
+
+        f.flush();
+        f.close();
+     }
+}
+
+void MarketCollection::load_tick_to_file_txt()
+{
+
+}
+
+void MarketCollection::load_tick_to_file_bin()
+{
+
 }
 
 bool MarketCollection::is_main_symbol(const char* s)

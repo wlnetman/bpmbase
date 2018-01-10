@@ -15,7 +15,7 @@ class MarketCollection : public CThostFtdcMdSpi
     using pTickVec = std::shared_ptr<TickVec>;
 
 public:
-    MarketCollection() : exit_(false), maxsize_tickvec_(10000) {}
+    MarketCollection() : exit_(false), maxsize_tickvec_(6*60*60*2) {}
     ~MarketCollection(){ exit_ = true; }
 
     void set_mdapi(CThostFtdcMdApi* p) { api_ = p; }
@@ -53,7 +53,10 @@ private:
     void do_login();
     void do_subscribe();
     void push_depthdata_to_tickquque(CThostFtdcDepthMarketDataField *pData);
-    void write_tick_to_file();
+    void save_tick_to_file_txt();
+    void save_tick_to_file_bin();
+    void load_tick_to_file_txt();
+    void load_tick_to_file_bin();
     bool is_main_symbol(const char* s);
     bool is_subscribe_symbol(const char* symbol);
 
@@ -65,8 +68,9 @@ private:
     std::string password_;
     std::string main_symbol_;
 
-    int                                    maxsize_tickvec_;
+    int                                    maxsize_tickvec_; // 螺纹6*3600秒，每秒2个tick
     std::map<std::string, pTickVec>        tick_mgr_;       // 根据symbol保存tick
+    std::map<std::string, pTickVec>        index_tick_;     // 指数的tick
     SimpleQueue<std::shared_ptr<TickData>> producer_task_;  // 生产者队列
     std::atomic<bool> exit_;
 };
