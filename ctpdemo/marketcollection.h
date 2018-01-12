@@ -27,8 +27,9 @@ public:
 
     void consumer_thread();
 
-    double calc_index(TickVec& tick);
-    void   calc_index(const char* symbol);
+    double   calc_index(TickVec& );
+    void     calc_index(TickVec& , TickData& );
+    void     calc_index(const char* symbol);
 
 public:
     void OnFrontConnected();
@@ -58,7 +59,10 @@ private:
     void load_tick_to_file_txt();
     void load_tick_to_file_bin();
     bool is_main_symbol(const char* s);
+    std::string get_index_symbol(const char* s);
     bool is_subscribe_symbol(const char* symbol);
+    std::string tick2str(std::shared_ptr<TickData> tick);
+    std::string tick2str(TickData& tick);
 
 private:
     CThostFtdcMdApi *api_;
@@ -67,7 +71,7 @@ private:
     std::string userid_;
     std::string password_;
     std::string main_symbol_;
-
+    std::string tradingday_;
     int                                    maxsize_tickvec_; // 螺纹6*3600秒，每秒2个tick
     std::map<std::string, pTickVec>        tick_mgr_;       // 根据symbol保存tick
     std::map<std::string, pTickVec>        index_tick_;     // 指数的tick

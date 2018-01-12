@@ -9,6 +9,7 @@
 #include <ctime>
 #include <memory>
 #include <iostream>
+#include <cctype>
 
 #include "fmt/format.h"
 #include "utils/strutil.h"
@@ -87,6 +88,12 @@ void MarketCollection::do_subscribe()
         return;
     }
 
+    const char * tday = api_->GetTradingDay();
+    tradingday_ = tday;
+
+    // 读取保存的tick数据
+    load_tick_to_file_bin();
+
     // easyctp是每一个发送一次订阅请求
     for( auto &item : symbols_) {
         std::string &symble = item;
@@ -94,7 +101,7 @@ void MarketCollection::do_subscribe()
         api_->SubscribeMarketData( instrument, 1);
         LOG(INFO)<< "subscribe: " << item;
     }
-    //delete []instrument;    
+    //delete []instrument;
 }
 
 // 订阅行情应答
@@ -179,6 +186,10 @@ bool MarketCollection::is_subscribe_symbol(const char* symbol)
     return subscribe;
 }
 
+void MarketCollection::calc_index(TickVec& tick, TickData& ret)
+{
+}
+
 double MarketCollection::calc_index(TickVec& tick)
 {
     double total_openInterest = 0.0;
@@ -199,13 +210,26 @@ void MarketCollection::calc_index(const char* symbol)
 
     // 是指定的主力合约
     if( is_main_symbol(symbol) ) {
+        std::string index_name = get_index_symbol(symbol);
         TickVec tmp_vec;
         for( const auto & item : tick_mgr_ ){
             // 取每个合约的最后一条记录
             tmp_vec.push_back( item.second->back() );
         }
-        double rb8888 = calc_index( tmp_vec );
-        LOG(INFO)<< "rb8888" << " ["<< static_cast<int>(std::ceil(rb8888)) << "]";
+        TickData index_8888;
+        calc_index( tmp_vec, index_8888);
+        auto& v = index_tick_.find( index_name ) ;
+        if( v != index_tick_.end() ){
+            std::shared_ptr<TickData> pTick = std::make_shared<TickData>(index_8888);
+            v->second->push_back( pTick );
+        } else {
+            pTickVec pVec = std::make_shared<TickVec>();
+            pVec->reserve( maxsize_tickvec_);
+            std::shared_ptr<TickData> pTick = std::make_shared<TickData>(index_8888);
+            pVec->push_back( pTick );
+            index_tick_[index_name] = pVec;
+        }
+        LOG(INFO)<< "add index " << index_name << ":" << index_tick_.size();
     }
 }
 
@@ -239,7 +263,7 @@ void MarketCollection::consumer_thread()
         }
 
         // 保存tick到文件
-        //save_tick_to_file_txt();
+        save_tick_to_file_txt();
 
         // 计算指数
         calc_index(tick->symbol);
@@ -252,7 +276,7 @@ void MarketCollection::save_tick_to_file_txt()
 {
     // 隔段时间刷新一次到文件
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-    if( std::chrono::duration_cast<std::chrono::seconds>( now - last_write).count() < 60 )
+    if( std::chrono::duration_cast<std::chrono::seconds>( now - last_write).count() < 5 )
         return;
 
     last_write = now;
@@ -262,40 +286,18 @@ void MarketCollection::save_tick_to_file_txt()
         DLOG_ASSERT( !v.second->empty() );
 
         std::string fname;
-        fname = fmt::format("C:\\temp\\tick\\{}-{}.txt",
-                            v.first,
-                            bpm_ctime2str( v.second->front()->actionDatetime,"%Y%m%d"));
+        fname = fmt::format("C:\\temp\\tick\\{}_{}.txt", v.first, tradingday_);
 
         std::ofstream f( fname.c_str(), std::ofstream::out | std::ofstream::trunc ); // 隐含输出截断
 
         for( std::shared_ptr<TickData> tick : *(v.second) ){
-            std::string s;
-            s = fmt::format("{}.{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
-                            bpm_ctime2str(tick->actionDatetime, "%Y%m%d %H:%M:%S"),
-                            tick->updateMs,
-                            tick->symbol,
-                            tick->lastPrice,
-                            tick->openPrice,
-                            tick->highPrice,
-                            tick->lowPrice,
-                            tick->preClosePrice,
-                            tick->averagePrice,
-                            tick->settlementPrice,
-                            tick->preSettlementPrice,
-                            tick->totalVolume,
-                            //tick->volume,
-                            tick->openInterest,
-                            tick->askPrice,
-                            tick->askVolume,
-                            tick->bidPrice,
-                            tick->bidVolume,
-                            tick->upperLimit,
-                            tick->lowerLimit);
-            //LOG(INFO)<< s;
 
+            std::string s = tick2str(tick);
+
+            //LOG(INFO)<< s;
             f << s;
         }
-        f.flush();
+        f.close();
      }
 
     save_tick_to_file_bin();
@@ -308,27 +310,42 @@ void MarketCollection::save_tick_to_file_bin()
         DLOG_ASSERT( !v.second->empty());
 
         std::string fname;
-        fname = fmt::format("C:\\temp\\tick\\{}-{}.dat",
-                            v.first,
-                            bpm_ctime2str( v.second->front()->actionDatetime,"%Y%m%d"));
+        fname = fmt::format("C:\\temp\\tick\\{}_{}.dat", v.first, tradingday_);
 
-        std::ofstream f( fname.c_str(), std::ofstream::out | std::ofstream::binary ); // 隐含输出截断
+        // 隐含输出截断,所以需要app
+        std::ofstream f( fname.c_str(), std::ofstream::app | std::ofstream::binary );
 
-        f.write( (const char*)(v.second->data()), v.second->size() * sizeof(TickData) );
+        for( auto& item : *(v.second) )
+            f.write( reinterpret_cast<char*>(&(*item)), sizeof(TickData) );
 
-        f.flush();
         f.close();
      }
 }
 
+//   TODO，画蛇添足
 void MarketCollection::load_tick_to_file_txt()
 {
-
 }
 
 void MarketCollection::load_tick_to_file_bin()
 {
-
+    for(auto symbol : symbols_){
+        std::string fname;
+        fname = fmt::format("c:\\temp\\tick\\{}_{}.dat", symbol, tradingday_);
+        std::ifstream f;
+        f.open(fname, std::ifstream::binary );
+        if(f.is_open()){
+            pTickVec pVec = std::make_shared<TickVec>();
+            tick_mgr_[symbol] = pVec;
+            while ( !f.eof() ){
+                TickData tick;
+                std::memset(&tick, 0, sizeof(TickData));
+                f.read( reinterpret_cast<char*>(&tick), sizeof(TickData));
+                std::shared_ptr<TickData> pData = std::make_shared<TickData>(tick);
+                pVec->push_back(pData);
+            }
+        }
+    }
 }
 
 bool MarketCollection::is_main_symbol(const char* s)
@@ -336,7 +353,47 @@ bool MarketCollection::is_main_symbol(const char* s)
     return strcmp( main_symbol_.c_str(), s) == 0;
 }
 
+std::string MarketCollection::get_index_symbol(const char* s)
+{
+    std::string str = s;
+    std::string ret;
+    std::for_each( std::begin(str), end(str), [&ret](char c){if(std::isalpha(c)) ret += c;} );
+    return ret + "8888";
+}
+
 // 废弃
 void MarketCollection::OnHeartBeatWarning(int nTimeLapse)
 {
 }
+
+std::string MarketCollection::tick2str(std::shared_ptr<TickData> tick)
+{
+    TickData& refTick = *tick;
+    return tick2str( refTick );
+}
+
+std::string MarketCollection::tick2str(TickData& tick)
+{
+    std::string s;
+    s = fmt::format("{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
+                    bpm_ctime2str(tick.actionDatetime, "%Y%m%d %H:%M:%S"),
+                    tick.symbol,
+                    tick.lastPrice,
+                    tick.openPrice,
+                    tick.highPrice,
+                    tick.lowPrice,
+                    tick.preClosePrice,
+                    tick.averagePrice,
+                    tick.settlementPrice,
+                    tick.preSettlementPrice,
+                    tick.totalVolume,
+                    tick.openInterest,
+                    tick.askPrice,
+                    tick.askVolume,
+                    tick.bidPrice,
+                    tick.bidVolume,
+                    tick.upperLimit,
+                    tick.lowerLimit);
+    return s;
+}
+

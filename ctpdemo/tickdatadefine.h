@@ -1,10 +1,16 @@
 #ifndef TICKDATADEFINE_H
 #define TICKDATADEFINE_H
 
+#include <memory>
+
 // Tick信息
 #define STR_LEN_SMALL 16 // 小字符串长度
 #define STR_LEN_BIG 64 // 大字符串长度
 struct TickData {
+    TickData() = default;
+    TickData(TickData& t){
+        std::memcpy(this, &t, sizeof(TickData));
+    }
     char symbol[STR_LEN_SMALL]; // 合约代码
     long long actionDatetime; // 时间,time_t
     int updateMs; // 时间的毫秒 or 当天唯一编号
