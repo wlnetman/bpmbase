@@ -18,33 +18,6 @@
 #include "marketcollection.h"
 #include "tickdatadefine.h"
 
-void MarketCollection::set_symbol(const std::string &symbols)
-{
-    auto all = StrUtil::split( symbols, ";");
-    for( auto item : all)
-    {
-        symbols_.push_back(item);
-    }
-    LOG(INFO)<< "set symbol: " << symbols << "\n";
-}
-
-void MarketCollection::set_main_symbol(const std::string &symbol)
-{
-    main_symbol_ = symbol;
-    LOG(INFO)<< "set main symbol: " << main_symbol_ << "\n";
-}
-
-void MarketCollection::set_user(const std::string& broker,
-                                const std::string& userid,
-                                const std::string &password)
-{
-    broker_    = broker;
-    userid_    = userid;
-    password_  = password;
-
-    LOG(INFO)<< "set user: " << broker << " userid: " << userid << "\n";
-}
-
 void MarketCollection::OnFrontConnected()
 {
     LOG(INFO)<< "OnFrontConnected\n";
@@ -56,9 +29,11 @@ void MarketCollection::do_login()
 {
     CThostFtdcReqUserLoginField req;
     std::memset(&req, 0, sizeof(req));
-    std::memcpy(&req.BrokerID, broker_.c_str(), broker_.length());
-    std::memcpy(&req.UserID, userid_.c_str(), userid_.length());
-    std::memcpy(&req.Password, password_.c_str(), password_.length());
+    std::memcpy(&req.BrokerID, config_->mdBrokerId.c_str(), config_->mdBrokerId.length());
+    std::memcpy(&req.UserID, config_->mdUserId.c_str(), config_->mdUserId.length());
+    std::memcpy(&req.Password, config_->mdPassword.c_str(), config_->mdPassword.length());
+
+    LOG(INFO)<< "do login: " << req.BrokerID << ", userid:" << req.UserID;
 
     int nRequestId = 0;
     // TODO:异常处理
@@ -83,6 +58,8 @@ void MarketCollection::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin
 
 void MarketCollection::do_subscribe()
 {
+    symbols_ = config_->symbols_list;
+
     if( api_ == nullptr || symbols_.empty()) {
         std::cout<< "Cannot subscribe" << std::endl;
         return;
@@ -102,6 +79,7 @@ void MarketCollection::do_subscribe()
         LOG(INFO)<< "subscribe: " << item;
     }
     //delete []instrument;
+
 }
 
 // 订阅行情应答
@@ -188,6 +166,7 @@ bool MarketCollection::is_subscribe_symbol(const char* symbol)
 
 void MarketCollection::calc_index(TickVec& tick, TickData& ret)
 {
+    ret.lastPrice = calc_index(tick);
 }
 
 double MarketCollection::calc_index(TickVec& tick)
@@ -217,6 +196,7 @@ void MarketCollection::calc_index(const char* symbol)
             tmp_vec.push_back( item.second->back() );
         }
         TickData index_8888;
+        std::memset(&index_8888, 0, sizeof(TickData));
         calc_index( tmp_vec, index_8888);
         auto& v = index_tick_.find( index_name ) ;
         if( v != index_tick_.end() ){
@@ -229,7 +209,7 @@ void MarketCollection::calc_index(const char* symbol)
             pVec->push_back( pTick );
             index_tick_[index_name] = pVec;
         }
-        LOG(INFO)<< "add index " << index_name << ":" << index_tick_.size();
+        LOG(INFO)<< index_name << ":" << index_8888.lastPrice;
     }
 }
 
@@ -350,7 +330,8 @@ void MarketCollection::load_tick_to_file_bin()
 
 bool MarketCollection::is_main_symbol(const char* s)
 {
-    return strcmp( main_symbol_.c_str(), s) == 0;
+    auto ret = config_->main_symbols.find(s);
+    return ret != config_->main_symbols.end();
 }
 
 std::string MarketCollection::get_index_symbol(const char* s)

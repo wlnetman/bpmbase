@@ -8,6 +8,7 @@
 #include <atomic>
 #include "simplequeue.h"
 #include "tickdatadefine.h"
+#include "config.h"
 
 class MarketCollection : public CThostFtdcMdSpi
 {
@@ -15,16 +16,11 @@ class MarketCollection : public CThostFtdcMdSpi
     using pTickVec = std::shared_ptr<TickVec>;
 
 public:
-    MarketCollection() : exit_(false), maxsize_tickvec_(6*60*60*2) {}
+    MarketCollection() : exit_(false), maxsize_tickvec_(6*60*60*2), config_(nullptr) {}
     ~MarketCollection(){ exit_ = true; }
 
     void set_mdapi(CThostFtdcMdApi* p) { api_ = p; }
-    void set_symbol(const std::string &symbols);
-    void set_main_symbol(const std::string &symbol);
-    void set_user(const std::string& broker,
-                  const std::string& userid,
-                  const std::string& password);
-
+    void set_config(Config* cfg) { config_ = cfg; }
     void consumer_thread();
 
     double   calc_index(TickVec& );
@@ -65,13 +61,11 @@ private:
     std::string tick2str(TickData& tick);
 
 private:
+    Config* config_;
     CThostFtdcMdApi *api_;
     std::vector<std::string> symbols_;
-    std::string broker_;
-    std::string userid_;
-    std::string password_;
-    std::string main_symbol_;
     std::string tradingday_;
+
     int                                    maxsize_tickvec_; // 螺纹6*3600秒，每秒2个tick
     std::map<std::string, pTickVec>        tick_mgr_;       // 根据symbol保存tick
     std::map<std::string, pTickVec>        index_tick_;     // 指数的tick

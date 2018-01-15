@@ -6,11 +6,13 @@ CONFIG += static_runtime
 HEADERS += \
     marketcollection.h \
     simplequeue.h \
-    tickdatadefine.h
+    tickdatadefine.h \
+    config.h
 
 SOURCES += \
         main.cpp \
-    marketcollection.cpp
+    marketcollection.cpp \
+    config.cpp
         
 include(../msvc.pri)
 include(../utils.pri)
